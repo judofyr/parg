@@ -49,7 +49,7 @@ defer p.deinit();
 ```
 
 In addition, remember that the first parameter given to a process is the file name of the executable.
-You typically want to call `nextValue()`
+You typically want to call `nextValue()` to retrieve this value before you continue parsing any arguments.
 
 ```zig
 const program_name = p.nextValue() orelse @panic("no executable name");
