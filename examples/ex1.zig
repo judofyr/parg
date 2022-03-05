@@ -20,21 +20,14 @@ pub fn main() !void {
 
     while (p.next()) |token| {
         switch (token) {
-            .long => |flag| {
-                if (std.mem.eql(u8, "force", flag)) {
+            .flag => |flag| {
+                if (std.mem.eql(u8, "force", flag.name) or std.mem.eql(u8, "f", flag.name)) {
                     force = true;
-                } else if (std.mem.eql(u8, "verbose", flag)) {
+                } else if (std.mem.eql(u8, "verbose", flag.name) or std.mem.eql(u8, "v", flag.name)) {
                     verbose = true;
-                } else if (std.mem.eql(u8, "version", flag)) {
+                } else if (std.mem.eql(u8, "version", flag.name)) {
                     std.debug.print("v1\n", .{});
                     std.os.exit(0);
-                }
-            },
-            .short => |flag| {
-                switch (flag) {
-                    'v' => verbose = true,
-                    'f' => force = true,
-                    else => @panic("unknown flag"),
                 }
             },
             .arg => |val| {

@@ -1,8 +1,17 @@
 const std = @import("std");
 
+pub const FlagType = enum {
+    short,
+    long,
+};
+
+pub const Flag = struct {
+    name: []const u8,
+    kind: FlagType,
+};
+
 pub const Token = union(enum) {
-    short: u8,
-    long: []const u8,
+    flag: Flag,
     arg: []const u8,
     unexpected_value: []const u8,
 };
@@ -76,22 +85,22 @@ pub fn Parser(comptime T: type) type {
                                     .value = arg[value_pos + 1 ..],
                                 },
                             };
-                            return Token{ .long = arg[2..value_pos] };
+                            return Token{ .flag = .{ .name = arg[2..value_pos], .kind = .long } };
                         }
 
-                        return Token{ .long = arg[2..] };
+                        return Token{ .flag = .{ .name = arg[2..], .kind = .long } };
                     }
 
                     if (arg.len > 1 and std.mem.startsWith(u8, arg, "-")) {
                         self.proceedShort(arg[1..]);
-                        return Token{ .short = arg[1] };
+                        return Token{ .flag = .{ .name = arg[1..2], .kind = .short } };
                     }
 
                     return Token{ .arg = arg };
                 },
                 .short => |arg| {
                     self.proceedShort(arg);
-                    return Token{ .short = arg[0] };
+                    return Token{ .flag = .{ .name = arg[0..1], .kind = .short } };
                 },
                 .value => |v| {
                     self.state = .default;
@@ -177,7 +186,7 @@ const testing = std.testing;
 fn expectShort(arg: ?Token) !u8 {
     if (arg) |a| {
         switch (a) {
-            .short => |name| return name,
+            .flag => |flag| if (flag.kind == .short) return flag.name[0],
             else => {},
         }
     }
@@ -187,7 +196,7 @@ fn expectShort(arg: ?Token) !u8 {
 fn expectLong(arg: ?Token) ![]const u8 {
     if (arg) |a| {
         switch (a) {
-            .long => |name| return name,
+            .flag => |flag| if (flag.kind == .long) return flag.name,
             else => {},
         }
     }

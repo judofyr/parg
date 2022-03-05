@@ -60,15 +60,15 @@ const program_name = p.nextValue() orelse @panic("no executable name");
 Once you have a parser you want to call `next()` in a loop.
 This returns a token which has four different possibilities:
 
-* `.long` when it encounters a long flag (e.g. `--verbose`).
-* `.short` when it encounters a short flag (e.g. `-v`).
+* `.flag` when it encounters a flag (e.g. `--verbose` or `-v`).
+  This flag has a `.name` field which contains the name of the flag (without the dashes) and `.kind` field if you need to distinguish between long and short flags.
 * `.arg` when it encounters a positional argument.
 * `.unexpected_value` when it encounters an unexpected value.
   You should just quit the program with an error when this happens.
   We'll come back to this in the next section.
 
 Also note that this will automatically split up short flags as expected:
-If you give the program `-fv` then `next()` will first return `.{.short = 'f'}` and then `.{.short = 'v'}`.
+If you give the program `-fv` then `next()` will first return a flag with name `f`, and then a flag with name `v`.
 
 ```zig
 // See examples/ex1.zig for full example.
@@ -79,21 +79,14 @@ var arg: ?[]const u8 = null;
 
 while (p.next()) |token| {
     switch (token) {
-        .long => |flag| {
-            if (std.mem.eql(u8, "force", flag)) {
+        .flag => |flag| {
+            if (std.mem.eql(u8, "force", flag.name) or std.mem.eql(u8, "f", flag.name)) {
                 force = true;
-            } else if (std.mem.eql(u8, "verbose", flag)) {
+            } else if (std.mem.eql(u8, "verbose", flag.name) or std.mem.eql(u8, "v", flag.name)) {
                 verbose = true;
-            } else if (std.mem.eql(u8, "version", flag)) {
+            } else if (std.mem.eql(u8, "version", flag.name)) {
                 std.debug.print("v1\n", .{});
                 std.os.exit(0);
-            }
-        },
-        .short => |flag| {
-            switch (flag) {
-                'v' => verbose = true,
-                'f' => force = true,
-                else => @panic("unknown flag"),
             }
         },
         .arg => |val| {
@@ -115,25 +108,18 @@ This returns an optional slice:
 
 while (p.next()) |token| {
     switch (token) {
-        .long => |flag| {
-            if (std.mem.eql(u8, "file", flag)) {
+        .flag => |flag| {
+            if (std.mem.eql(u8, "file", flag.name) or std.mem.eql(u8, "f", flag.name)) {
                 file = p.nextValue() orelse @panic("--file requires value");
-            } else if (std.mem.eql(u8, "verbose", flag)) {
+            } else if (std.mem.eql(u8, "verbose", flag.name) or std.mem.eql(u8, "v", flag.name)) {
                 verbose = true;
-            } else if (std.mem.eql(u8, "version", flag)) {
+            } else if (std.mem.eql(u8, "version", flag.name)) {
                 std.debug.print("v1\n", .{});
                 std.os.exit(0);
             }
         },
-        .short => |flag| {
-            switch (flag) {
-                'v' => verbose = true,
-                'f' => {
-                    file = p.nextValue() orelse @panic("--file requires value");
-                },
-                else => @panic("unknown flag"),
-            }
-        },
+        .arg => @panic("unexpected argument"),
+        .unexpected_value => @panic("unexpected value"),
     }
 }
 ```
