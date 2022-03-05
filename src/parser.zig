@@ -12,11 +12,22 @@ pub const Options = struct {
 };
 
 const State = union(enum) {
+    // Nothing is buffered.
     default: void,
-    short: void,
 
-    // Points to the position of the `=` sign.
-    value: usize,
+    // In the middle of parsing short flags.
+    short: []const u8,
+
+    // After observing an equal sign.
+    value: ValueState,
+};
+
+const ValueState = struct {
+    // This points to the value (i.e. whatever is after the = sign)
+    value: []const u8,
+
+    // This points to the key+value (e.g. `-m=message`).
+    full: []const u8,
 };
 
 pub fn Parser(comptime T: type) type {
@@ -26,7 +37,6 @@ pub fn Parser(comptime T: type) type {
         source: T,
         options: Options,
         state: State = .default,
-        buffered: ?[]const u8 = null,
         skip_flag_parsing: bool = false,
 
         pub fn init(source: T, options: Options) Self {
@@ -41,48 +51,52 @@ pub fn Parser(comptime T: type) type {
         }
 
         pub fn next(self: *Self) ?Token {
-            if (self.pull()) |arg| {
-                switch (self.state) {
-                    .default => {
-                        if (self.skip_flag_parsing) {
-                            return Token{ .arg = arg };
-                        }
+            switch (self.state) {
+                .default => {
+                    const arg = self.pull() orelse return null;
 
-                        if (std.mem.startsWith(u8, arg, "--")) {
-                            if (arg.len == 2) {
-                                if (self.options.auto_double_dash) {
-                                    self.skip_flag_parsing = true;
-                                    return self.next();
-                                } else {
-                                    return Token{ .arg = arg };
-                                }
-                            }
-
-                            if (std.mem.indexOfScalar(u8, arg, '=')) |value_pos| {
-                                self.state = .{ .value = value_pos - 2 };
-                                self.buffered = arg[2..];
-                                return Token{ .long = arg[2..value_pos] };
-                            }
-
-                            return Token{ .long = arg[2..] };
-                        }
-
-                        if (arg.len > 1 and std.mem.startsWith(u8, arg, "-")) {
-                            self.proceedShort(arg[1..]);
-                            return Token{ .short = arg[1] };
-                        }
-
+                    if (self.skip_flag_parsing) {
                         return Token{ .arg = arg };
-                    },
-                    .short => {
-                        self.proceedShort(arg);
-                        return Token{ .short = arg[0] };
-                    },
-                    .value => {
-                        self.state = .default;
-                        return Token{ .unexpected_value = arg };
-                    },
-                }
+                    }
+
+                    if (std.mem.startsWith(u8, arg, "--")) {
+                        if (arg.len == 2) {
+                            if (self.options.auto_double_dash) {
+                                self.skip_flag_parsing = true;
+                                return self.next();
+                            } else {
+                                return Token{ .arg = arg };
+                            }
+                        }
+
+                        if (std.mem.indexOfScalar(u8, arg, '=')) |value_pos| {
+                            self.state = .{
+                                .value = .{
+                                    .full = arg[2..],
+                                    .value = arg[value_pos + 1 ..],
+                                },
+                            };
+                            return Token{ .long = arg[2..value_pos] };
+                        }
+
+                        return Token{ .long = arg[2..] };
+                    }
+
+                    if (arg.len > 1 and std.mem.startsWith(u8, arg, "-")) {
+                        self.proceedShort(arg[1..]);
+                        return Token{ .short = arg[1] };
+                    }
+
+                    return Token{ .arg = arg };
+                },
+                .short => |arg| {
+                    self.proceedShort(arg);
+                    return Token{ .short = arg[0] };
+                },
+                .value => |v| {
+                    self.state = .default;
+                    return Token{ .unexpected_value = v.full };
+                },
             }
 
             return null;
@@ -92,13 +106,11 @@ pub fn Parser(comptime T: type) type {
         /// This correctly handles both `--long=value`, `--long value`, `-svalue`, `-s=value` and `-s value`.
         pub fn nextValue(self: *Self) ?[]const u8 {
             switch (self.state) {
-                .value => |eq_pos| {
+                .default => return self.pull(),
+                .short => |buf| return buf,
+                .value => |v| {
                     self.state = .default;
-                    return self.pull().?[eq_pos + 1 ..];
-                },
-                else => {
-                    self.state = .default;
-                    return self.pull();
+                    return v.value;
                 },
             }
         }
@@ -108,13 +120,7 @@ pub fn Parser(comptime T: type) type {
             self.skip_flag_parsing = true;
         }
 
-        /// pull fetches the next slice to work with. This returns either the buffered value,
-        /// or retrieves a new element from the source.
         fn pull(self: *Self) ?[]const u8 {
-            if (self.buffered) |value| {
-                self.buffered = null;
-                return value;
-            }
             return @as(?[]const u8, self.source.next());
         }
 
@@ -125,12 +131,15 @@ pub fn Parser(comptime T: type) type {
                 self.state = .default;
             } else if (data[1] == '=') {
                 // We found a value!
-                self.state = .{ .value = 1 };
-                self.buffered = data;
+                self.state = .{
+                    .value = .{
+                        .full = data,
+                        .value = data[2..],
+                    },
+                };
             } else {
                 // There's more short flags.
-                self.state = .short;
-                self.buffered = data[1..];
+                self.state = .{ .short = data[1..] };
             }
         }
     };
