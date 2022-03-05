@@ -11,10 +11,12 @@ pub const Options = struct {
     auto_double_dash: bool = true,
 };
 
-const State = enum {
-    default,
-    short,
-    value,
+const State = union(enum) {
+    default: void,
+    short: void,
+
+    // Points to the position of the `=` sign.
+    value: usize,
 };
 
 pub fn Parser(comptime T: type) type {
@@ -57,8 +59,8 @@ pub fn Parser(comptime T: type) type {
                             }
 
                             if (std.mem.indexOfScalar(u8, arg, '=')) |value_pos| {
-                                self.state = .value;
-                                self.buffered = arg[value_pos + 1 ..];
+                                self.state = .{ .value = value_pos - 2 };
+                                self.buffered = arg[2..];
                                 return Token{ .long = arg[2..value_pos] };
                             }
 
@@ -66,14 +68,14 @@ pub fn Parser(comptime T: type) type {
                         }
 
                         if (arg.len > 1 and std.mem.startsWith(u8, arg, "-")) {
-                            self.proceedShort(arg[2..]);
+                            self.proceedShort(arg[1..]);
                             return Token{ .short = arg[1] };
                         }
 
                         return Token{ .arg = arg };
                     },
                     .short => {
-                        self.proceedShort(arg[1..]);
+                        self.proceedShort(arg);
                         return Token{ .short = arg[0] };
                     },
                     .value => {
@@ -89,8 +91,16 @@ pub fn Parser(comptime T: type) type {
         /// nextValue should be invoked after you've observed a long/short flag and expect a value. 
         /// This correctly handles both `--long=value`, `--long value`, `-svalue`, `-s=value` and `-s value`.
         pub fn nextValue(self: *Self) ?[]const u8 {
-            self.state = .default;
-            return self.pull();
+            switch (self.state) {
+                .value => |eq_pos| {
+                    self.state = .default;
+                    return self.pull().?[eq_pos + 1 ..];
+                },
+                else => {
+                    self.state = .default;
+                    return self.pull();
+                },
+            }
         }
 
         /// skipFlagParsing turns off flag parsing and causes all the next tokens to be returned as `arg`.
@@ -110,17 +120,17 @@ pub fn Parser(comptime T: type) type {
 
         /// proceedShort sets up the state after a short flag has been seen. 
         fn proceedShort(self: *Self, data: []const u8) void {
-            if (data.len == 0) {
+            if (data.len == 1) {
                 // No more data in this slice => Go back to default mode.
                 self.state = .default;
-            } else if (data[0] == '=') {
+            } else if (data[1] == '=') {
                 // We found a value!
-                self.state = .value;
-                self.buffered = data[1..];
+                self.state = .{ .value = 1 };
+                self.buffered = data;
             } else {
                 // There's more short flags.
                 self.state = .short;
-                self.buffered = data;
+                self.buffered = data[1..];
             }
         }
     };
@@ -279,7 +289,7 @@ test "unexpected value" {
         var parser = parseSlice(&[_][]const u8{"--name=bob"}, .{});
         defer parser.deinit();
         try testing.expectEqualStrings("name", try expectLong(parser.next()));
-        try testing.expectEqualStrings("bob", try expectUnexpectedValue(parser.next()));
+        try testing.expectEqualStrings("name=bob", try expectUnexpectedValue(parser.next()));
         try expectNull(parser.next());
     }
 
@@ -289,7 +299,7 @@ test "unexpected value" {
         defer parser.deinit();
         try testing.expectEqual(@as(u8, 'a'), try expectShort(parser.next()));
         try testing.expectEqual(@as(u8, 'b'), try expectShort(parser.next()));
-        try testing.expectEqualStrings("bob", try expectUnexpectedValue(parser.next()));
+        try testing.expectEqualStrings("b=bob", try expectUnexpectedValue(parser.next()));
         try expectNull(parser.next());
     }
 }
@@ -298,7 +308,7 @@ test "unexpected value followed by flag" {
     var parser = parseSlice(&[_][]const u8{ "--name=bob", "--file" }, .{});
     defer parser.deinit();
     try testing.expectEqualStrings("name", try expectLong(parser.next()));
-    try testing.expectEqualStrings("bob", try expectUnexpectedValue(parser.next()));
+    try testing.expectEqualStrings("name=bob", try expectUnexpectedValue(parser.next()));
     try testing.expectEqualStrings("file", try expectLong(parser.next()));
     try expectNull(parser.next());
 }
@@ -362,7 +372,7 @@ test "manual skip during value" {
     defer parser.deinit();
     try testing.expectEqualStrings("hello", try expectLong(parser.next()));
     parser.skipFlagParsing();
-    try testing.expectEqualStrings("world", try expectUnexpectedValue(parser.next()));
+    try testing.expectEqualStrings("hello=world", try expectUnexpectedValue(parser.next()));
     try testing.expectEqualStrings("--name", try expectArg(parser.next()));
     try expectNull(parser.next());
 }
