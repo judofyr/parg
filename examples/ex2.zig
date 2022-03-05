@@ -20,11 +20,11 @@ pub fn main() !void {
     while (p.next()) |token| {
         switch (token) {
             .flag => |flag| {
-                if (std.mem.eql(u8, "file", flag.name) or std.mem.eql(u8, "f", flag.name)) {
+                if (flag.is("file") or flag.is("f")) {
                     file = p.nextValue() orelse @panic("--file requires value");
-                } else if (std.mem.eql(u8, "verbose", flag.name) or std.mem.eql(u8, "v", flag.name)) {
+                } else if (flag.is("verbose") or flag.is("v")) {
                     verbose = true;
-                } else if (std.mem.eql(u8, "version", flag.name)) {
+                } else if (flag.is("version")) {
                     std.debug.print("v1\n", .{});
                     std.os.exit(0);
                 }

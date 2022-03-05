@@ -58,10 +58,11 @@ const program_name = p.nextValue() orelse @panic("no executable name");
 ### Parsing boolean flags and positional arguments
 
 Once you have a parser you want to call `next()` in a loop.
-This returns a token which has four different possibilities:
+This returns a token which has three different possibilities:
 
 * `.flag` when it encounters a flag (e.g. `--verbose` or `-v`).
-  This flag has a `.name` field which contains the name of the flag (without the dashes) and `.kind` field if you need to distinguish between long and short flags.
+  This flag has a `.name` field which contains the name of the flag (without the dashes) and a `.kind` field if you need to distinguish between long and short flags.
+  There's also a helper function `flag.is(str)` to easily check the name of the field.
 * `.arg` when it encounters a positional argument.
 * `.unexpected_value` when it encounters an unexpected value.
   You should just quit the program with an error when this happens.
@@ -80,11 +81,11 @@ var arg: ?[]const u8 = null;
 while (p.next()) |token| {
     switch (token) {
         .flag => |flag| {
-            if (std.mem.eql(u8, "force", flag.name) or std.mem.eql(u8, "f", flag.name)) {
+            if (flag.is("force") or flag.is("f")) {
                 force = true;
-            } else if (std.mem.eql(u8, "verbose", flag.name) or std.mem.eql(u8, "v", flag.name)) {
+            } else if (flag.is("verbose") or flag.is("v")) {
                 verbose = true;
-            } else if (std.mem.eql(u8, "version", flag.name)) {
+            } else if (flag.is("version")) {
                 std.debug.print("v1\n", .{});
                 std.os.exit(0);
             }
@@ -109,11 +110,11 @@ This returns an optional slice:
 while (p.next()) |token| {
     switch (token) {
         .flag => |flag| {
-            if (std.mem.eql(u8, "file", flag.name) or std.mem.eql(u8, "f", flag.name)) {
+            if (flag.is("file") or flag.is("f")) {
                 file = p.nextValue() orelse @panic("--file requires value");
-            } else if (std.mem.eql(u8, "verbose", flag.name) or std.mem.eql(u8, "v", flag.name)) {
+            } else if (flag.is("verbose") or flag.is("v")) {
                 verbose = true;
-            } else if (std.mem.eql(u8, "version", flag.name)) {
+            } else if (flag.is("version")) {
                 std.debug.print("v1\n", .{});
                 std.os.exit(0);
             }

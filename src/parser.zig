@@ -8,6 +8,10 @@ pub const FlagType = enum {
 pub const Flag = struct {
     name: []const u8,
     kind: FlagType,
+
+    pub fn is(self: Flag, other: []const u8) bool {
+        return std.mem.eql(u8, self.name, other);
+    }
 };
 
 pub const Token = union(enum) {
