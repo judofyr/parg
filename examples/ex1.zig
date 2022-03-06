@@ -21,11 +21,11 @@ pub fn main() !void {
     while (p.next()) |token| {
         switch (token) {
             .flag => |flag| {
-                if (flag.is("force") or flag.is("f")) {
+                if (flag.isLong("force") or flag.isShort("f")) {
                     force = true;
-                } else if (flag.is("verbose") or flag.is("v")) {
+                } else if (flag.isLong("verbose") or flag.isShort("v")) {
                     verbose = true;
-                } else if (flag.is("version")) {
+                } else if (flag.isLong("version")) {
                     std.debug.print("v1\n", .{});
                     std.os.exit(0);
                 }

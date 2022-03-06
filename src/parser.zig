@@ -12,6 +12,14 @@ pub const Flag = struct {
     pub fn is(self: Flag, other: []const u8) bool {
         return std.mem.eql(u8, self.name, other);
     }
+
+    pub fn isLong(self: Flag, other: []const u8) bool {
+        return self.is(other) and self.kind == .long;
+    }
+
+    pub fn isShort(self: Flag, other: []const u8) bool {
+        return self.is(other) and self.kind == .short;
+    }
 };
 
 pub const Token = union(enum) {
