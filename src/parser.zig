@@ -123,7 +123,7 @@ pub fn Parser(comptime T: type) type {
             return null;
         }
 
-        /// nextValue should be invoked after you've observed a long/short flag and expect a value. 
+        /// nextValue should be invoked after you've observed a long/short flag and expect a value.
         /// This correctly handles both `--long=value`, `--long value`, `-svalue`, `-s=value` and `-s value`.
         pub fn nextValue(self: *Self) ?[]const u8 {
             switch (self.state) {
@@ -145,7 +145,7 @@ pub fn Parser(comptime T: type) type {
             return @as(?[]const u8, self.source.next());
         }
 
-        /// proceedShort sets up the state after a short flag has been seen. 
+        /// proceedShort sets up the state after a short flag has been seen.
         fn proceedShort(self: *Self, data: []const u8) void {
             if (data.len == 1) {
                 // No more data in this slice => Go back to default mode.
