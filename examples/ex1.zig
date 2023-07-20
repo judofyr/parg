@@ -5,8 +5,8 @@ const parg = @import("../src/parser.zig");
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
-        const leaked = gpa.deinit();
-        if (leaked) @panic("memory leaked");
+        const check = gpa.deinit();
+        if (check == .leak) @panic("memory leaked");
     }
 
     var p = try parg.parseProcess(gpa.allocator(), .{});
@@ -38,5 +38,5 @@ pub fn main() !void {
         }
     }
 
-    std.debug.print("program={s} verbose={} force={} arg={s}\n", .{ program_name, verbose, force, arg });
+    std.debug.print("program={s} verbose={} force={} arg={s}\n", .{ program_name, verbose, force, arg orelse "(null)" });
 }
