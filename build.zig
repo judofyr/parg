@@ -1,9 +1,12 @@
 const std = @import("std");
-const Builder = std.build.Builder;
 
-pub fn build(b: *Builder) !void {
+pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
+
+    _ = b.addModule("parg", .{
+        .root_source_file = .{ .path = "src/parser.zig" },
+    });
 
     const tests = b.addTest(.{
         .root_source_file = .{ .path = "src/parser.zig" },
