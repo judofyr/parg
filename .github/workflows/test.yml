@@ -4,6 +4,7 @@ on:
   push:
   schedule:
   - cron: "0 3 * * 5"
+  workflow_dispatch:
 
 jobs:
   test:
