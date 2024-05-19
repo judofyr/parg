@@ -5,11 +5,11 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
 
     _ = b.addModule("parg", .{
-        .root_source_file = .{ .path = "src/parser.zig" },
+        .root_source_file = b.path("src/parser.zig"),
     });
 
     const tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/parser.zig" },
+        .root_source_file = b.path("src/parser.zig"),
         .target = target,
         .optimize = optimize,
     });
