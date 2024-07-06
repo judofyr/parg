@@ -3,6 +3,14 @@ const std = @import("std");
 pub const FlagType = enum {
     short,
     long,
+
+    /// Returns the prefix ("-" for short, "--" for long) of the flag.
+    pub fn prefix(self: FlagType) []const u8 {
+        return switch (self) {
+            .short => "-",
+            .long => "--",
+        };
+    }
 };
 
 pub const Flag = struct {
@@ -19,6 +27,18 @@ pub const Flag = struct {
 
     pub fn isShort(self: Flag, other: []const u8) bool {
         return self.is(other) and self.kind == .short;
+    }
+
+    pub fn format(
+        self: Flag,
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = fmt;
+        _ = options;
+        try writer.writeAll(self.kind.prefix());
+        try writer.writeAll(self.name);
     }
 };
 
@@ -416,4 +436,22 @@ test "manual skip during short" {
     try testing.expectEqual(@as(u8, 'c'), try expectShort(parser.next()));
     try testing.expectEqualStrings("--file", try expectArg(parser.next()));
     try expectNull(parser.next());
+}
+
+test "printing flags" {
+    var buf: [255]u8 = undefined;
+
+    {
+        // Short flag
+        var fbs = std.io.fixedBufferStream(&buf);
+        try fbs.writer().print("hello: {}", .{Flag{ .kind = .short, .name = "a" }});
+        try testing.expectEqualStrings("hello: -a", fbs.getWritten());
+    }
+
+    {
+        // long flag
+        var fbs = std.io.fixedBufferStream(&buf);
+        try fbs.writer().print("hello: {}", .{Flag{ .kind = .long, .name = "outfile" }});
+        try testing.expectEqualStrings("hello: --outfile", fbs.getWritten());
+    }
 }
