@@ -20,3 +20,5 @@ jobs:
         run: zig fmt --check src/*.zig
       - name: Tests
         run: zig build test
+      - name: Examples
+        run: zig build examples

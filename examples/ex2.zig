@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const parg = @import("../src/parser.zig");
+const parg = @import("parg");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -26,7 +26,7 @@ pub fn main() !void {
                     verbose = true;
                 } else if (flag.isLong("version")) {
                     std.debug.print("v1\n", .{});
-                    std.os.exit(0);
+                    std.process.exit(0);
                 }
             },
             .arg => @panic("unexpected argument"),
