@@ -29,14 +29,7 @@ pub const Flag = struct {
         return self.is(other) and self.kind == .short;
     }
 
-    pub fn format(
-        self: Flag,
-        comptime fmt: []const u8,
-        options: std.fmt.FormatOptions,
-        writer: anytype,
-    ) !void {
-        _ = fmt;
-        _ = options;
+    pub fn format(self: Flag, writer: anytype) !void {
         try writer.writeAll(self.kind.prefix());
         try writer.writeAll(self.name);
     }
@@ -444,14 +437,14 @@ test "printing flags" {
     {
         // Short flag
         var fbs = std.io.fixedBufferStream(&buf);
-        try fbs.writer().print("hello: {}", .{Flag{ .kind = .short, .name = "a" }});
+        try fbs.writer().print("hello: {f}", .{Flag{ .kind = .short, .name = "a" }});
         try testing.expectEqualStrings("hello: -a", fbs.getWritten());
     }
 
     {
         // long flag
         var fbs = std.io.fixedBufferStream(&buf);
-        try fbs.writer().print("hello: {}", .{Flag{ .kind = .long, .name = "outfile" }});
+        try fbs.writer().print("hello: {f}", .{Flag{ .kind = .long, .name = "outfile" }});
         try testing.expectEqualStrings("hello: --outfile", fbs.getWritten());
     }
 }
