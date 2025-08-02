@@ -1,17 +1,15 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
-    const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
 
     const mod = b.addModule("parg", .{
         .root_source_file = b.path("src/parser.zig"),
+        .target = target,
     });
 
     const tests = b.addTest(.{
-        .root_source_file = b.path("src/parser.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = mod,
     });
     const tests_run_step = b.addRunArtifact(tests);
 
@@ -20,15 +18,19 @@ pub fn build(b: *std.Build) !void {
 
     const ex1 = b.addExecutable(.{
         .name = "ex1",
-        .root_source_file = b.path("examples/ex1.zig"),
-        .target = target,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/ex1.zig"),
+            .target = target,
+        }),
     });
     ex1.root_module.addImport("parg", mod);
 
     const ex2 = b.addExecutable(.{
         .name = "ex1",
-        .root_source_file = b.path("examples/ex2.zig"),
-        .target = target,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/ex2.zig"),
+            .target = target,
+        }),
     });
     ex2.root_module.addImport("parg", mod);
 
