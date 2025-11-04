@@ -436,15 +436,15 @@ test "printing flags" {
 
     {
         // Short flag
-        var fbs = std.io.fixedBufferStream(&buf);
-        try fbs.writer().print("hello: {f}", .{Flag{ .kind = .short, .name = "a" }});
-        try testing.expectEqualStrings("hello: -a", fbs.getWritten());
+        var fbs = std.Io.Writer.fixed(&buf);
+        try fbs.print("hello: {f}", .{Flag{ .kind = .short, .name = "a" }});
+        try testing.expectEqualStrings("hello: -a", fbs.buffered());
     }
 
     {
         // long flag
-        var fbs = std.io.fixedBufferStream(&buf);
-        try fbs.writer().print("hello: {f}", .{Flag{ .kind = .long, .name = "outfile" }});
-        try testing.expectEqualStrings("hello: --outfile", fbs.getWritten());
+        var fbs = std.Io.Writer.fixed(&buf);
+        try fbs.print("hello: {f}", .{Flag{ .kind = .long, .name = "outfile" }});
+        try testing.expectEqualStrings("hello: --outfile", fbs.buffered());
     }
 }
