@@ -36,7 +36,7 @@ All of these accept some _options_ as the last argument.
 const parg = @import("parg");
 
 // (1) Parse arguments given to the current process:
-var p = try parg.parseProcess(allocator, .{});
+var p = try parg.parseProcess(init, .{});
 
 // (2) Parse arguments from a `[]const []const u8`:
 var p = parg.parseSlice(slice, .{});
