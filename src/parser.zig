@@ -202,8 +202,9 @@ pub fn parseSlice(slice: []const []const u8, options: Options) Parser(SliceIter)
     return parse(SliceIter{ .items = slice }, options);
 }
 
-pub fn parseProcess(allocator: std.mem.Allocator, options: Options) !Parser(std.process.ArgIterator) {
-    return parse(try std.process.argsWithAllocator(allocator), options);
+pub fn parseProcess(init: std.process.Init, options: Options) !Parser(std.process.Args.Iterator) {
+    const args = try init.minimal.args.iterateAllocator(init.gpa);
+    return parse(args, options);
 }
 
 const testing = std.testing;

@@ -2,14 +2,8 @@ const std = @import("std");
 
 const parg = @import("parg");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const check = gpa.deinit();
-        if (check == .leak) @panic("memory leaked");
-    }
-
-    var p = try parg.parseProcess(gpa.allocator(), .{});
+pub fn main(init: std.process.Init) !void {
+    var p = try parg.parseProcess(init, .{});
     defer p.deinit();
 
     const program_name = p.nextValue() orelse @panic("no executable name");
