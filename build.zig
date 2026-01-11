@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) !void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&tests_run_step.step);
 
-    const ex1 = b.addExecutable(.{
+    var ex1 = b.addExecutable(.{
         .name = "ex1",
         .root_module = b.createModule(.{
             .root_source_file = b.path("examples/ex1.zig"),
@@ -25,8 +25,8 @@ pub fn build(b: *std.Build) !void {
     });
     ex1.root_module.addImport("parg", mod);
 
-    const ex2 = b.addExecutable(.{
-        .name = "ex1",
+    var ex2 = b.addExecutable(.{
+        .name = "ex2",
         .root_module = b.createModule(.{
             .root_source_file = b.path("examples/ex2.zig"),
             .target = target,
@@ -35,5 +35,6 @@ pub fn build(b: *std.Build) !void {
     ex2.root_module.addImport("parg", mod);
 
     const examples_step = b.step("examples", "Build examples");
-    examples_step.dependOn(&ex1.step);
+    examples_step.dependOn(&b.addInstallArtifact(ex1, .{}).step);
+    examples_step.dependOn(&b.addInstallArtifact(ex2, .{}).step);
 }
